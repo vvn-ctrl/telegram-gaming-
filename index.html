@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Баскетбол 🏀 NFT мишки</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { margin: 0; background: #f0f0f0; font-family: sans-serif; overflow: hidden; touch-action: none; }
+        #ui { position: absolute; top: 10px; width: 100%; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+        .stats { display: flex; gap: 20px; font-weight: bold; font-size: 14px; color: #333; }
+        #timer { font-size: 24px; color: #e74c3c; margin-top: 5px; }
+        #gameCanvas { display: block; }
+        #msg { position: absolute; top: 50%; width: 100%; text-align: center; font-size: 30px; font-weight: bold; display: none; }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <div class="stats">
+            <span>Уровень: <span id="curLvl">1</span></span>
+            <span>Пройдено: <span id="totalDone">0</span></span>
+        </div>
+        <div id="timer">01:00</div>
+    </div>
+    <div id="msg"></div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Состояние игры
+        let currentLevelId = 0;
+        let totalCompleted = 0;
+        let timeLeft = 60;
+        let timerInterval;
+        let lastLevels = []; // Очередь последних 14 уровней
+
+        let ball = { x: 0, y: 0, radius: 18, vx: 0, vy: 0, isFlying: false };
+        let hoops = [];
+        let activeHoopIdx = 0;
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+        const gravity = 0.5;
+
+        // Генерация 15 типов уровней
+        const levelTemplates = Array.from({length: 15}, (_, i) => ({
+            id: i + 1,
+            moveSpeed: i * 0.4,
+            isMoving: i > 4,
+            widthMult: 1 - (i * 0.02)
+        }));
+
+        function initLevel() {
+            // Выбор уровня, который не повторялся последние 14 раз
+            let available = levelTemplates.filter(t => !lastLevels.includes(t.id));
+            let template = available[Math.floor(Math.random() * available.length)];
+            
+            lastLevels.push(template.id);
+            if (lastLevels.length > 14) lastLevels.shift();
+
+            currentLevelId = template.id;
+            document.getElementById('curLvl').innerText = currentLevelId;
+            document.getElementById('totalDone').innerText = totalCompleted;
+
+            // На одном уровне от 4 до 7 колец
+            const hoopCount = Math.floor(Math.random() * 4) + 4;
+            hoops = [];
+            for (let i = 0; i < hoopCount; i++) {
+                hoops.push({
+                    x: Math.random() * (canvas.width - 100) + 50,
+                    y: (canvas.height - 150) - (i * 180),
+                    w: 80 * template.widthMult,
+                    vx: template.isMoving ? (Math.random() > 0.5 ? 1 : -1) * template.moveSpeed : 0
+                });
+            }
+
+            activeHoopIdx = 0;
+            resetBallToHoop();
+            startTimer();
+        }
+
+        function resetBallToHoop() {
+            ball.isFlying = false;
+            ball.x = hoops[activeHoopIdx].x + hoops[activeHoopIdx].w / 2;
+            ball.y = hoops[activeHoopIdx].y;
+            ball.vx = 0; ball.vy = 0;
+        }
+
+        function startTimer() {
+            timeLeft = 60;
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                let m = Math.floor(timeLeft / 60);
+                let s = timeLeft % 60;
+                document.getElementById('timer').innerText = XXXINLINECODEXXX0XXXINLINECODEXXX;
+                if (timeLeft <= 0) {
+                    tg.HapticFeedback.notificationOccurred('error');
+                    alert("Время вышло!");
+                    initLevel();
+                }
+            }, 1000);
+        }
+
+        function update() {
+            if (ball.isFlying) {
+                ball.vy += gravity;
+                ball.x += ball.vx;
+                ball.y += ball.vy;
+
+                // Проверка попадания в следующее кольцо
+                let nextIdx = activeHoopIdx + 1;
+                if (nextIdx < hoops.length) {
+                    let h = hoops[nextIdx];
+                    if (ball.vy > 0 && ball.y > h.y - 10 && ball.y < h.y + 10) {
+                        if (ball.x > h.x && ball.x < h.x + h.w) {
+                            tg.HapticFeedback.impactOccurred('medium'); // Вибрация
+                            activeHoopIdx = nextIdx;
+                            ball.isFlying = false;
+                            ball.x = h.x + h.w / 2;
+                            ball.y = h.y;
+                            
+                            if (activeHoopIdx === hoops.length - 1) {
+                                totalCompleted++;
+                                showMsg("ОТЛИЧНО! 🧸");
+                                setTimeout(initLevel, 1000);
+                            }
+                        }
+                    }
+                }
+
+                // Вылет за границы
+                if (ball.y > canvas.height || ball.x < 0 || ball.x > canvas.width) {
+                    resetBallToHoop();
+                }
+            }
+
+            // Анимация колец
+            hoops.forEach(h => {
+                h.x += h.vx;
+                if (h.x <= 0 || h.x + h.w >= canvas.width) h.vx *= -1;
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.save();
+            // Камера плавно следует за мячом вверх
+            let targetY = (canvas.height / 1.5) - hoops[activeHoopIdx].y;
+            ctx.translate(0, targetY);
+
+            // Отрисовка колец
+            hoops.forEach((h, i) => {
+                ctx.strokeStyle = i >= activeHoopIdx ? '#333' : '#ddd';
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(h.x, h.y);
+                ctx.lineTo(h.x + h.w, h.y);
+                ctx.stroke();
+            });
+
+            // Отрисовка NFT Мишки (мяча)
+            ctx.font = "40px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText(ball.isFlying ? "🏀" : "🧸", ball.x, ball.y + 15);
+
+            // Траектория прицеливания
+            if (isDragging) {
+                ctx.beginPath();
+                ctx.strokeStyle = "rgba(0,0,0,0.1)";
+                ctx.setLineDash([5, 5]);
+                ctx.moveTo(ball.x, ball.y);
+                ctx.lineTo(ball.x - (dragStart.x - ball.x), ball.y - (dragStart.y - ball.y));
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            ctx.restore();
+            update();
+            requestAnimationFrame(draw);
+        }
+
+        function showMsg(text) {
+            const m = document.getElementById('msg');
+            m.innerText = text;
+            m.style.display = 'block';
+            setTimeout(() => m.style.display = 'none', 1000);
+        }
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (ball.isFlying) return;
+            isDragging = true;
+            dragStart.x = e.touches[0].clientX;
+            dragStart.y = e.touches[0].clientY;
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            let endX = e.changedTouches[0].clientX;
+            let endY = e.changedTouches[0].clientY;
+            ball.vx = (dragStart.x - endX) * 0.12;
+            ball.vy = (dragStart.y - endY) * 0.12;
+            ball.isFlying = true;
+        });
+
+        initLevel();
+        draw();
+    </script>
+</body>
+</html>
