@@ -1,366 +1,291 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bear's Space Dunk Pro</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        :root {
-            --tg-bg: var(--tg-theme-bg-color, #0f172a);
-            --tg-text: var(--tg-theme-text-color, #f8fafc);
-            --tg-accent: var(--tg-theme-button-color, #38bdf8);
-        }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Баскетбол NFT Мишки</title>
+<!-- Встроенные стили для адаптивности и анимаций -->
+<style>
+  :root {
+    --bg-color-light: #ffffff;
+    --bg-color-dark: #1e1e1e;
+    --text-color-light: #000;
+    --text-color-dark: #fff;
+  }
 
-        body {
-            margin: 0; padding: 0;
-            background: var(--tg-bg);
-            color: var(--tg-text);
-            font-family: -apple-system, system-ui, sans-serif;
-            overflow: hidden; touch-action: none;
-        }
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 100vh;
+    background-color: var(--bg-color-light);
+    color: var(--text-color-light);
+    padding: 10px;
+    transition: background-color 0.3s, color 0.3s;
+  }
 
-        #ui {
-            position: absolute; top: 0; left: 0; width: 100%;
-            pointer-events: none; padding: 20px;
-            box-sizing: border-box; display: flex;
-            justify-content: space-between; z-index: 10;
-        }
+  /* Поддержка темы Telegram */
+  @media (prefers-color-scheme: dark) {
+    body {
+      background-color: var(--bg-color-dark);
+      color: var(--text-color-dark);
+    }
+  }
 
-        .score-val { font-size: 32px; font-weight: 900; color: var(--tg-accent); line-height: 1; }
-        
-        #overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.95);
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            z-index: 100; text-align: center; padding: 20px; box-sizing: border-box;
-        }
+  header {
+    width: 100%;
+    padding: 10px;
+    text-align: center;
+    font-size: 1.2em;
+    font-weight: bold;
+  }
 
-        .btn {
-            background: var(--tg-accent); color: white;
-            border: none; padding: 18px 45px; border-radius: 20px;
-            font-size: 20px; font-weight: bold; cursor: pointer;
-            pointer-events: auto; box-shadow: 0 10px 25px rgba(56, 189, 248, 0.3);
-        }
+  #gameContainer {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    height: 600px;
+    border: 2px solid #ccc;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: #f0f0f0;
+  }
 
-        #combo-msg {
-            position: fixed; top: 40%; left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 48px; font-weight: 900; color: #fbbf24;
-            pointer-events: none; opacity: 0; z-index: 50;
-            transition: opacity 0.2s, transform 0.5s cubic-bezier(0.17, 0.67, 0.83, 0.67);
-            text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
-        }
-    </style>
+  /* Адаптивность для мобильных */
+  @media(max-width: 500px){
+    #gameContainer {
+      height: 80vh;
+    }
+  }
+
+  /* Таймер и результаты */
+  #timer {
+    font-size: 1.5em;
+    margin: 10px 0;
+  }
+
+  #resultScreen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  #scoreText {
+    font-size: 1.2em;
+    margin: 10px 0;
+  }
+
+  button {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    margin: 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s;
+  }
+
+  button:hover {
+    background-color: #0056b3;
+  }
+
+  /* Анимации появления элементов */
+  .popup {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.9;
+    animation: popUp 1.5s forwards;
+  }
+
+  @keyframes popUp {
+    0% { transform: scale(0); opacity: 0; }
+    50% { opacity: 0.9; }
+    100% { transform: scale(1); opacity: 0; }
+  }
+</style>
 </head>
 <body>
 
-<div id="ui">
-    <div>
-        <div style="font-size: 10px; opacity: 0.6; letter-spacing: 1px;">SCORE</div>
-        <div id="score" class="score-val">0</div>
-        <div id="level-info" style="font-size: 14px; margin-top: 4px;">Lvl 1</div>
-        <div id="goal-info" style="font-size: 12px; opacity: 0.8;">Цель: 0/3</div>
-    </div>
-    <div style="text-align: right;">
-        <div style="font-size: 10px; opacity: 0.6; letter-spacing: 1px;">TIME</div>
-        <div id="timer" style="font-size: 28px; font-weight: bold;">30</div>
-    </div>
+<header>баскетбол 🏀 NFT мишки</header>
+
+<div id="gameContainer">
+  <canvas id="basketballCanvas" style="width:100%; height:100%;"></canvas>
+  <div id="timer">30</div>
 </div>
 
-<div id="combo-msg">SWISH!</div>
-
-<canvas id="gameCanvas"></canvas>
-
-<div id="overlay">
-    <h1 id="maintitle" style="font-size: 50px; margin: 0;">🐻🚀</h1>
-    <h2 id="subtitle" style="margin: 10px 0;">Space Dunk</h2>
-    <p id="desc" style="max-width: 280px; opacity: 0.7; line-height: 1.5; margin-bottom: 30px;">
-        Забрасывай мишку в порталы! <br>Стань номером один в NFT лиге.
-    </p>
-    <button class="btn" id="actionBtn" onclick="game.start()">ИГРАТЬ</button>
+<div id="resultScreen">
+  <div id="finalResult"></div>
+  <button id="restartBtn">Играть снова</button>
+  <button id="shareBtn">Поделиться результатом</button>
 </div>
+
+<!-- Telegram Button для шаринга -->
+<script async src="https://telegram.org/js/telegram-widget.js?15" data-telegram-share-url="" data-size="large" data-userpic="" data-title="Мой результат в баскетбол NFT"></script>
 
 <script>
-const tg = window.Telegram.WebApp;
-tg.expand();
+  const ctx = document.getElementById('basketballCanvas').getContext('2d');
+  const canvas = document.getElementById('basketballCanvas');
 
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+  let gameInterval;
+  let countdownInterval;
+  let timeLeft = 30;
+  let levelScore = 0;
+  let totalScore = 0;
+  let level = 1;
+  let rings = [];
+  let popups = [];
 
-const game = {
-    score: 0,
-    level: 1,
-    timeLeft: 30,
-    isPlaying: false,
-    combo: 0,
-    goalsInLevel: 0,
-    targetGoals: 3,
-    timerId: null,
-    
-    ball: { x: 0, y: 0, r: 20, vx: 0, vy: 0, active: false, trail: [] },
-    hoop: { x: 0, y: 0, w: 90, h: 10, baseX: 0 },
-    particles: [],
-    stars: [],
-    
-    init() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        this.stars = [];
-        for(let i=0; i<80; i++) {
-            this.stars.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                s: Math.random() * 2,
-                v: Math.random() * 0.5 + 0.2
-            });
-        }
-        this.resetBall();
-        if(!this.isPlaying) this.render();
-    },
+  const totalRingsMin = 3;
+  const totalRingsMax = 7;
 
-    start() {
-        if(this.timerId) clearInterval(this.timerId);
-        
-        this.score = 0;
-        this.level = 1;
-        this.timeLeft = 30;
-        this.goalsInLevel = 0;
-        this.targetGoals = 3;
-        this.combo = 0;
-        this.isPlaying = true;
-        
-        document.getElementById('score').textContent = '0';
-        document.getElementById('timer').textContent = '30';
-        document.getElementById('level-info').textContent = 'Lvl 1';
-        document.getElementById('goal-info').textContent = 'Цель: 0/3';
-        document.getElementById('overlay').style.display = 'none';
-        
-        this.resetBall();
-        this.spawnHoop();
-        
-        this.timerId = setInterval(() => {
-            if(!this.isPlaying) return;
-            this.timeLeft--;
-            document.getElementById('timer').textContent = this.timeLeft;
-            if(this.timeLeft <= 0) this.end();
-        }, 1000);
+  const maxLevels = 10; // Можно настроить
 
-        tg.HapticFeedback.impactOccurred('medium');
-        this.render();
-    },
+  const timerElem = document.getElementById('timer');
+  const resultScreen = document.getElementById('resultScreen');
+  const finalResult = document.getElementById('finalResult');
+  const restartBtn = document.getElementById('restartBtn');
+  const shareBtn = document.getElementById('shareBtn');
 
-    resetBall() {
-        this.ball.active = false;
-        this.ball.x = canvas.width / 2;
-        this.ball.y = canvas.height - 100;
-        this.ball.vx = 0;
-        this.ball.vy = 0;
-        this.ball.trail = [];
-    },
+  // Функция для случайных чисел
+  function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
 
-    spawnHoop() {
-        this.hoop.baseX = 50 + Math.random() * (canvas.width - 150);
-        this.hoop.x = this.hoop.baseX;
-        this.hoop.y = 180 + Math.random() * (canvas.height / 3);
-    },
-
-    showCombo(text) {
-        const el = document.getElementById('combo-msg');
-        el.textContent = text;
-        el.style.opacity = '1';
-        el.style.transform = 'translate(-50%, -80%) scale(1.2)';
-        setTimeout(() => {
-            el.style.opacity = '0';
-            el.style.transform = 'translate(-50%, -50%) scale(1)';
-        }, 800);
-    },
-
-    pop(x, y, color) {
-        for(let i=0; i<12; i++) {
-            this.particles.push({
-                x, y,
-                vx: (Math.random()-0.5)*8,
-                vy: (Math.random()-0.5)*8,
-                life: 1.0,
-                color
-            });
-        }
-    },
-
-    end() {
-        this.isPlaying = false;
-        clearInterval(this.timerId);
-        document.getElementById('overlay').style.display = 'flex';
-        document.getElementById('maintitle').textContent = "КОНЕЦ 🏆";
-        document.getElementById('subtitle').textContent = XXXINLINECODEXXX3XXXINLINECODEXXX;
-        document.getElementById('actionBtn').textContent = "РЕВАНШ";
-        tg.HapticFeedback.notificationOccurred('warning');
-    },
-
-    update() {
-        if(!this.isPlaying) return;
-
-        // Плавное движение кольца
-        if(this.level >= 2) {
-            const range = 50 + (this.level * 5);
-            this.hoop.x = this.hoop.baseX + Math.sin(Date.now() / 600) * range;
-        }
-
-        if(this.ball.active) {
-            this.ball.x += this.ball.vx;
-            this.ball.y += this.ball.vy;
-            this.ball.vy += 0.4; // Гравитация
-
-            this.ball.trail.push({x: this.ball.x, y: this.ball.y});
-            if(this.ball.trail.length > 12) this.ball.trail.shift();
-
-            // Коллизия с кольцом
-            if(this.ball.vy > 0 && 
-               this.ball.y > this.hoop.y - 10 && this.ball.y < this.hoop.y + 10 &&
-               this.ball.x > this.hoop.x && this.ball.x < this.hoop.x + this.hoop.w) {
-                
-                this.combo++;
-                let points = 10 * this.combo;
-                this.score += points;
-                this.goalsInLevel++;
-                
-                this.pop(this.ball.x, this.ball.y, this.combo > 2 ? '#fbbf24' : '#38bdf8');
-                this.showCombo(this.combo > 1 ? XXXINLINECODEXXX4XXXINLINECODEXXX : "SWISH!");
-                tg.HapticFeedback.notificationOccurred('success');
-
-                if(this.goalsInLevel >= this.targetGoals) {
-                    this.level++;
-                    this.goalsInLevel = 0;
-                    this.targetGoals = Math.min(10, 3 + Math.floor(this.level/1.5));
-                    this.timeLeft += 3;
-                }
-
-                document.getElementById('score').textContent = this.score;
-                document.getElementById('level-info').textContent = XXXINLINECODEXXX5XXXINLINECODEXXX;
-                document.getElementById('goal-info').textContent = XXXINLINECODEXXX6XXXINLINECODEXXX;
-                
-                this.resetBall();
-                this.spawnHoop();
-            }
-
-            // Промах
-            if(this.ball.y > canvas.height + 50 || this.ball.x < -50 || this.ball.x > canvas.width + 50) {
-                this.combo = 0;
-                this.resetBall();
-                tg.HapticFeedback.impactOccurred('light');
-            }
-        }
-
-        this.stars.forEach(s => {
-            s.y += s.v;
-            if(s.y > canvas.height) s.y = 0;
-        });
-
-        this.particles.forEach((p, i) => {
-            p.x += p.vx; p.y += p.vy; p.life -= 0.025;
-            if(p.life <= 0) this.particles.splice(i, 1);
-        });
-    },
-
-    render() {
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Звезды
-        ctx.fillStyle = '#fff';
-        this.stars.forEach(s => {
-            ctx.globalAlpha = 0.3;
-            ctx.fillRect(s.x, s.y, s.s, s.s);
-        });
-
-        // Линия прицеливания
-        if(input.isDown && !this.ball.active) {
-            ctx.beginPath();
-            ctx.setLineDash([5, 8]);
-            ctx.moveTo(this.ball.x, this.ball.y);
-            ctx.lineTo(this.ball.x + (input.startX - input.currX), this.ball.y + (input.startY - input.currY));
-            ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
-            ctx.stroke();
-            ctx.setLineDash([]);
-        }
-
-        // Шлейф
-        this.ball.trail.forEach((t, i) => {
-            ctx.globalAlpha = i / 15;
-            ctx.fillStyle = this.combo > 2 ? '#fbbf24' : '#38bdf8';
-            ctx.beginPath();
-            ctx.arc(t.x, t.y, (i/12)*this.ball.r, 0, Math.PI*2);
-            ctx.fill();
-        });
-        ctx.globalAlpha = 1;
-
-        // Кольцо (Портал)
-        ctx.strokeStyle = '#38bdf8';
-        ctx.lineWidth = 5;
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = '#38bdf8';
-        ctx.beginPath();
-        ctx.ellipse(this.hoop.x + this.hoop.w/2, this.hoop.y, this.hoop.w/2, 8, 0, 0, Math.PI*2);
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-
-        // Мяч
-        ctx.font = "40px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText(this.combo > 2 ? "🔥" : "🐻", this.ball.x, this.ball.y + 15);
-
-        // Частицы
-        this.particles.forEach(p => {
-            ctx.globalAlpha = p.life;
-            ctx.fillStyle = p.color;
-            ctx.fillRect(p.x, p.y, 3, 3);
-        });
-        ctx.globalAlpha = 1;
-
-        if(this.isPlaying) {
-            this.update();
-            requestAnimationFrame(() => this.render());
-        }
+  // Инициализация уровня
+  function initLevel() {
+    rings = [];
+    const ringsCount = getRandomInt(totalRingsMin, totalRingsMax);
+    for (let i=0; i<ringsCount; i++) {
+      rings.push({
+        x: getRandomInt(50, canvas.width - 50),
+        y: getRandomInt(50, canvas.height - 150),
+        radius: 30,
+        hit: false
+      });
     }
-};
+    levelScore = 0;
+  }
 
-const input = {
-    startX: 0, startY: 0, currX: 0, currY: 0, isDown: false,
-    init() {
-        const handleStart = (x, y) => {
-            if(!game.isPlaying || game.ball.active) return;
-            this.isDown = true;
-            this.startX = x; this.startY = y;
-            this.currX = x; this.currY = y;
-        };
-        const handleMove = (x, y) => {
-            if(!this.isDown) return;
-            this.currX = x; this.currY = y;
-        };
-        const handleEnd = (x, y) => {
-            if(!this.isDown) return;
-            const dx = this.startX - x;
-            const dy = this.startY - y;
-            // Ограничение силы
-            const force = 0.13;
-            game.ball.vx = dx * force;
-            game.ball.vy = dy * force;
-            game.ball.active = true;
-            this.isDown = false;
-            tg.HapticFeedback.impactOccurred('light');
-        };
+  // Обработка попадания
+  function handleClick(e) {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
 
-        canvas.addEventListener('touchstart', e => handleStart(e.touches[0].clientX, e.touches[0].clientY));
-        canvas.addEventListener('touchmove', e => handleMove(e.touches[0].clientX, e.touches[0].clientY));
-        canvas.addEventListener('touchend', e => handleEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY));
+    rings.forEach(ring => {
+      if (!ring.hit) {
+        const dist = Math.hypot(ring.x - x, ring.y - y);
+        if (dist <= ring.radius) {
+          ring.hit = true;
+          levelScore++;
+          totalScore++;
+          createPopup(ring.x, ring.y);
+        }
+      }
+    });
+  }
+
+  // Создание всплывающих элементов
+  function createPopup(x, y) {
+    const popupTypes = ['circle', 'star', 'heart'];
+    const type = popupTypes[getRandomInt(0, popupTypes.length - 1)];
+    popups.push({x, y, type, life: 0});
+  }
+
+  // Отрисовка попапов
+  function drawPopups() {
+    popups = popups.filter(p => p.life < 1.5);
+    popups.forEach(p => {
+      ctx.globalAlpha = 1 - p.life / 1.5;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 10 + p.life * 10, 0, Math.PI * 2);
+      ctx.fillStyle = p.type === 'circle' ? 'gold' :
+                      p.type === 'star' ? 'yellow' :
+                      'pink';
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      p.life += 0.02;
+    });
+  }
+
+  // Основной цикл
+  function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Отрисовка колец
+    rings.forEach(ring => {
+      ctx.beginPath();
+      ctx.arc(ring.x, ring.y, ring.radius, 0, Math.PI * 2);
+      ctx.strokeStyle = ring.hit ? 'gray' : 'blue';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+    });
+
+    drawPopups();
+
+    if (timeLeft <= 0 || rings.every(r => r.hit)) {
+      endLevel();
+      return;
     }
-};
 
-window.addEventListener('resize', () => game.init());
-game.init();
-input.init();
+    requestAnimationFrame(gameLoop);
+  }
+
+  // Конец уровня
+  function endLevel() {
+    clearInterval(gameInterval);
+    clearInterval(countdownInterval);
+    // Позитивное сообщение
+    finalResult.innerHTML = `Результат: ${levelScore} попаданий! <br> Продолжай в том же духе и ты сможешь стать топ один!`;
+    document.getElementById('resultScreen').style.display = 'flex';
+  }
+
+  // Начать игру
+  function startGame() {
+    document.getElementById('resultScreen').style.display = 'none';
+    timeLeft = 30;
+    totalScore = 0;
+    level = 1;
+    initLevel();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    gameInterval = requestAnimationFrame(gameLoop);
+    countdownInterval = setInterval(() => {
+      timeLeft--;
+      timerElem.textContent = timeLeft;
+      if (timeLeft <= 0) {
+        endLevel();
+      }
+    }, 1000);
+  }
+
+  // Обработчик перезапуска
+  restartBtn.onclick = startGame;
+
+  // Обработка клика по канвасу
+  canvas.addEventListener('click', handleClick);
+
+  // Обработка кнопки поделиться
+  shareBtn.onclick = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Баскетбол NFT Мишки',
+        text: `Я набрал ${totalScore} очков в игре! Попробуй тоже!`,
+        url: window.location.href
+      });
+    } else {
+      alert('Поделиться невозможно, используйте кнопку делиться в браузере.');
+    }
+  };
+
+  // Запуск игры при загрузке
+  window.onload = () => {
+    startGame();
+  };
 </script>
+
 </body>
 </html>
