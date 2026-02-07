@@ -4,13 +4,12 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Баскетбол NFT Мишки</title>
-<!-- Встроенные стили для адаптивности и анимаций -->
 <style>
   :root {
     --bg-color-light: #ffffff;
+    --text-color-light: #000000;
     --bg-color-dark: #1e1e1e;
-    --text-color-light: #000;
-    --text-color-dark: #fff;
+    --text-color-dark: #ffffff;
   }
 
   body {
@@ -24,10 +23,10 @@
     background-color: var(--bg-color-light);
     color: var(--text-color-light);
     padding: 10px;
+    box-sizing: border-box;
     transition: background-color 0.3s, color 0.3s;
   }
 
-  /* Поддержка темы Telegram */
   @media (prefers-color-scheme: dark) {
     body {
       background-color: var(--bg-color-dark);
@@ -37,8 +36,8 @@
 
   header {
     width: 100%;
-    padding: 10px;
     text-align: center;
+    padding: 10px;
     font-size: 1.2em;
     font-weight: bold;
   }
@@ -48,20 +47,25 @@
     width: 100%;
     max-width: 400px;
     height: 600px;
-    border: 2px solid #ccc;
     border-radius: 10px;
     overflow: hidden;
+    border: 2px solid #ccc;
     background-color: #f0f0f0;
+    flex: 1 1 auto;
   }
 
-  /* Адаптивность для мобильных */
   @media(max-width: 500px){
     #gameContainer {
       height: 80vh;
     }
   }
 
-  /* Таймер и результаты */
+  #canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
   #timer {
     font-size: 1.5em;
     margin: 10px 0;
@@ -69,11 +73,14 @@
 
   #resultScreen {
     display: none;
-    flex-direction: column;
-    align-items: center;
+    width: 100%;
+    max-width: 400px;
+    padding: 10px;
+    box-sizing: border-box;
+    text-align: center;
   }
 
-  #scoreText {
+  #finalResult {
     font-size: 1.2em;
     margin: 10px 0;
   }
@@ -94,7 +101,7 @@
     background-color: #0056b3;
   }
 
-  /* Анимации появления элементов */
+  /* Анимации всплывающих элементов */
   .popup {
     position: absolute;
     border-radius: 50%;
@@ -114,7 +121,7 @@
 <header>баскетбол 🏀 NFT мишки</header>
 
 <div id="gameContainer">
-  <canvas id="basketballCanvas" style="width:100%; height:100%;"></canvas>
+  <canvas id="canvas"></canvas>
   <div id="timer">30</div>
 </div>
 
@@ -124,167 +131,160 @@
   <button id="shareBtn">Поделиться результатом</button>
 </div>
 
-<!-- Telegram Button для шаринга -->
-<script async src="https://telegram.org/js/telegram-widget.js?15" data-telegram-share-url="" data-size="large" data-userpic="" data-title="Мой результат в баскетбол NFT"></script>
-
+<!-- Скрипт игры -->
 <script>
-  const ctx = document.getElementById('basketballCanvas').getContext('2d');
-  const canvas = document.getElementById('basketballCanvas');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const timerElem = document.getElementById('timer');
+const resultScreen = document.getElementById('resultScreen');
+const finalResult = document.getElementById('finalResult');
+const restartBtn = document.getElementById('restartBtn');
+const shareBtn = document.getElementById('shareBtn');
 
-  let gameInterval;
-  let countdownInterval;
-  let timeLeft = 30;
-  let levelScore = 0;
-  let totalScore = 0;
-  let level = 1;
-  let rings = [];
-  let popups = [];
+let gameTimeoutId;
+let countdownInterval;
+let timeLeft = 30;
+let levelScore = 0;
+let totalScore = 0;
+let level = 1;
+let rings = [];
+let popups = [];
+let totalLevels = 10;
 
-  const totalRingsMin = 3;
-  const totalRingsMax = 7;
-
-  const maxLevels = 10; // Можно настроить
-
-  const timerElem = document.getElementById('timer');
-  const resultScreen = document.getElementById('resultScreen');
-  const finalResult = document.getElementById('finalResult');
-  const restartBtn = document.getElementById('restartBtn');
-  const shareBtn = document.getElementById('shareBtn');
-
-  // Функция для случайных чисел
-  function getRandomInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+// Настройка размеров канваса
+function resizeCanvas() {
+  canvas.width = document.getElementById('gameContainer').clientWidth;
+  if (canvas.width > 0) {
+    canvas.height = canvas.width * (600/400);
   }
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
-  // Инициализация уровня
-  function initLevel() {
-    rings = [];
-    const ringsCount = getRandomInt(totalRingsMin, totalRingsMax);
-    for (let i=0; i<ringsCount; i++) {
-      rings.push({
-        x: getRandomInt(50, canvas.width - 50),
-        y: getRandomInt(50, canvas.height - 150),
-        radius: 30,
-        hit: false
-      });
-    }
-    levelScore = 0;
+// Генерация случайных чисел
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min +1)) + min;
+}
+
+// Инициализация уровня
+function initLevel() {
+  rings = [];
+  const count = getRandomInt(3,7);
+  for (let i=0; i<count; i++) {
+    rings.push({
+      x: getRandomInt(50, canvas.width - 50),
+      y: getRandomInt(50, canvas.height - 150),
+      radius: 30,
+      hit: false
+    });
   }
+  levelScore = 0;
+}
 
-  // Обработка попадания
-  function handleClick(e) {
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+// Создание всплывающих элементов
+function createPopup(x,y) {
+  const types = ['circle','star','heart'];
+  const type = types[getRandomInt(0, types.length -1)];
+  popups.push({x,y,type,life:0});
+}
 
-    rings.forEach(ring => {
-      if (!ring.hit) {
-        const dist = Math.hypot(ring.x - x, ring.y - y);
-        if (dist <= ring.radius) {
-          ring.hit = true;
-          levelScore++;
-          totalScore++;
-          createPopup(ring.x, ring.y);
-        }
+// Обработка кликов
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  rings.forEach(r => {
+    if (!r.hit) {
+      const dist = Math.hypot(r.x - x, r.y - y);
+      if (dist <= r.radius) {
+        r.hit = true;
+        levelScore++;
+        totalScore++;
+        createPopup(r.x, r.y);
       }
-    });
+    }
+  });
+});
+
+// Основной цикл
+function gameLoop() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // рисуем кольца
+  rings.forEach(r => {
+    ctx.beginPath();
+    ctx.arc(r.x, r.y, r.radius, 0, Math.PI*2);
+    ctx.strokeStyle = r.hit ? 'gray' : 'blue';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+  });
+
+  // рисуем всплывающие элементы
+  popups = popups.filter(p => p.life < 1.5);
+  popups.forEach(p => {
+    ctx.globalAlpha = 1 - p.life/1.5;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 10 + p.life*10, 0, Math.PI*2);
+    ctx.fillStyle = p.type==='circle'?'gold':p.type==='star'?'yellow':'pink';
+    ctx.fill();
+    ctx.globalAlpha=1;
+    p.life += 0.02;
+  });
+
+  if (timeLeft <= 0 || rings.every(r => r.hit)) {
+    endLevel();
+    return;
   }
 
-  // Создание всплывающих элементов
-  function createPopup(x, y) {
-    const popupTypes = ['circle', 'star', 'heart'];
-    const type = popupTypes[getRandomInt(0, popupTypes.length - 1)];
-    popups.push({x, y, type, life: 0});
-  }
+  requestAnimationFrame(gameLoop);
+}
 
-  // Отрисовка попапов
-  function drawPopups() {
-    popups = popups.filter(p => p.life < 1.5);
-    popups.forEach(p => {
-      ctx.globalAlpha = 1 - p.life / 1.5;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 10 + p.life * 10, 0, Math.PI * 2);
-      ctx.fillStyle = p.type === 'circle' ? 'gold' :
-                      p.type === 'star' ? 'yellow' :
-                      'pink';
-      ctx.fill();
-      ctx.globalAlpha = 1;
-      p.life += 0.02;
-    });
-  }
+// Завершение уровня
+function endLevel() {
+  clearInterval(gameTimeoutId);
+  clearInterval(countdownInterval);
+  document.getElementById('resultScreen').style.display='block';
+  finalResult.innerHTML = `Результат: ${levelScore} попаданий!<br>Продолжай в том же духе и ты сможешь стать топ один!`;
+}
 
-  // Основной цикл
-  function gameLoop() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    // Отрисовка колец
-    rings.forEach(ring => {
-      ctx.beginPath();
-      ctx.arc(ring.x, ring.y, ring.radius, 0, Math.PI * 2);
-      ctx.strokeStyle = ring.hit ? 'gray' : 'blue';
-      ctx.lineWidth = 4;
-      ctx.stroke();
-    });
-
-    drawPopups();
-
-    if (timeLeft <= 0 || rings.every(r => r.hit)) {
+// Запуск уровня
+function startLevel() {
+  document.getElementById('resultScreen').style.display='none';
+  timeLeft=30;
+  levelScore=0;
+  initLevel();
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  gameLoop();
+  countdownInterval = setInterval(() => {
+    timeLeft--;
+    timerElem.textContent = timeLeft;
+    if (timeLeft <= 0) {
       endLevel();
-      return;
     }
+  }, 1000);
+}
 
-    requestAnimationFrame(gameLoop);
+// Обработчик кнопки "играть снова"
+restartBtn.onclick=() => {
+  startLevel();
+}
+
+// Обработчик "поделиться"
+shareBtn.onclick= () => {
+  if (navigator.share) {
+    navigator.share({
+      title: 'Баскетбол NFT Мишки',
+      text: `Я набрал ${totalScore} очков! Попробуй тоже!`,
+      url: window.location.href
+    });
+  } else {
+    alert('Поделиться невозможно, используйте кнопку делиться в браузере.');
   }
+}
 
-  // Конец уровня
-  function endLevel() {
-    clearInterval(gameInterval);
-    clearInterval(countdownInterval);
-    // Позитивное сообщение
-    finalResult.innerHTML = `Результат: ${levelScore} попаданий! <br> Продолжай в том же духе и ты сможешь стать топ один!`;
-    document.getElementById('resultScreen').style.display = 'flex';
-  }
-
-  // Начать игру
-  function startGame() {
-    document.getElementById('resultScreen').style.display = 'none';
-    timeLeft = 30;
-    totalScore = 0;
-    level = 1;
-    initLevel();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    gameInterval = requestAnimationFrame(gameLoop);
-    countdownInterval = setInterval(() => {
-      timeLeft--;
-      timerElem.textContent = timeLeft;
-      if (timeLeft <= 0) {
-        endLevel();
-      }
-    }, 1000);
-  }
-
-  // Обработчик перезапуска
-  restartBtn.onclick = startGame;
-
-  // Обработка клика по канвасу
-  canvas.addEventListener('click', handleClick);
-
-  // Обработка кнопки поделиться
-  shareBtn.onclick = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: 'Баскетбол NFT Мишки',
-        text: `Я набрал ${totalScore} очков в игре! Попробуй тоже!`,
-        url: window.location.href
-      });
-    } else {
-      alert('Поделиться невозможно, используйте кнопку делиться в браузере.');
-    }
-  };
-
-  // Запуск игры при загрузке
-  window.onload = () => {
-    startGame();
-  };
+// запуск игры
+window.onload=()=> {
+  startLevel();
+};
 </script>
 
 </body>
