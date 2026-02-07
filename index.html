@@ -3,288 +3,191 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Баскетбол NFT Мишки</title>
+<title>Dunk Shot</title>
 <style>
-  :root {
-    --bg-color-light: #ffffff;
-    --text-color-light: #000000;
-    --bg-color-dark: #1e1e1e;
-    --text-color-dark: #ffffff;
-  }
-
   body {
     margin: 0;
-    font-family: Arial, sans-serif;
+    background: #222;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    min-height: 100vh;
-    background-color: var(--bg-color-light);
-    color: var(--text-color-light);
-    padding: 10px;
-    box-sizing: border-box;
-    transition: background-color 0.3s, color 0.3s;
+    justify-content: flex-start;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+    color: white;
   }
-
-  @media (prefers-color-scheme: dark) {
-    body {
-      background-color: var(--bg-color-dark);
-      color: var(--text-color-dark);
-    }
+  h1 {
+    margin: 10px;
   }
-
-  header {
-    width: 100%;
-    text-align: center;
-    padding: 10px;
-    font-size: 1.2em;
-    font-weight: bold;
-  }
-
-  #gameContainer {
-    position: relative;
-    width: 100%;
-    max-width: 400px;
-    height: 600px;
-    border-radius: 10px;
-    overflow: hidden;
-    border: 2px solid #ccc;
-    background-color: #f0f0f0;
-    flex: 1 1 auto;
-  }
-
-  @media(max-width: 500px){
-    #gameContainer {
-      height: 80vh;
-    }
-  }
-
-  #canvas {
-    width: 100%;
-    height: 100%;
+  #gameCanvas {
+    background: #444;
     display: block;
+    margin: 0 auto;
+    border: 2px solid #aaa;
   }
-
-  #timer {
-    font-size: 1.5em;
-    margin: 10px 0;
-  }
-
-  #resultScreen {
-    display: none;
-    width: 100%;
-    max-width: 400px;
-    padding: 10px;
-    box-sizing: border-box;
-    text-align: center;
-  }
-
-  #finalResult {
+  #score {
     font-size: 1.2em;
-    margin: 10px 0;
+    margin: 10px;
   }
-
-  button {
-    background-color: #007bff;
-    color: #fff;
-    border: none;
+  #restartBtn {
     padding: 10px 20px;
-    margin: 8px;
-    border-radius: 5px;
-    cursor: pointer;
     font-size: 1em;
-    transition: background-color 0.3s;
-  }
-
-  button:hover {
-    background-color: #0056b3;
-  }
-
-  /* Анимации всплывающих элементов */
-  .popup {
-    position: absolute;
-    border-radius: 50%;
-    opacity: 0.9;
-    animation: popUp 1.5s forwards;
-  }
-
-  @keyframes popUp {
-    0% { transform: scale(0); opacity: 0; }
-    50% { opacity: 0.9; }
-    100% { transform: scale(1); opacity: 0; }
+    margin: 10px;
+    cursor: pointer;
   }
 </style>
 </head>
 <body>
 
-<header>баскетбол 🏀 NFT мишки</header>
+<h1>Dunk Shot</h1>
+<canvas id="gameCanvas" width="400" height="600"></canvas>
+<div id="score">Очков: 0</div>
+<button id="restartBtn">Играть снова</button>
 
-<div id="gameContainer">
-  <canvas id="canvas"></canvas>
-  <div id="timer">30</div>
-</div>
-
-<div id="resultScreen">
-  <div id="finalResult"></div>
-  <button id="restartBtn">Играть снова</button>
-  <button id="shareBtn">Поделиться результатом</button>
-</div>
-
-<!-- Скрипт игры -->
 <script>
-const canvas = document.getElementById('canvas');
+const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const timerElem = document.getElementById('timer');
-const resultScreen = document.getElementById('resultScreen');
-const finalResult = document.getElementById('finalResult');
-const restartBtn = document.getElementById('restartBtn');
-const shareBtn = document.getElementById('shareBtn');
 
-let gameTimeoutId;
-let countdownInterval;
-let timeLeft = 30;
-let levelScore = 0;
-let totalScore = 0;
-let level = 1;
-let rings = [];
-let popups = [];
-let totalLevels = 10;
+let ball = {
+  x: 200,
+  y: 500,
+  radius: 15,
+  vx: 0,
+  vy: 0,
+  isMoving: false
+};
 
-// Настройка размеров канваса
-function resizeCanvas() {
-  canvas.width = document.getElementById('gameContainer').clientWidth;
-  if (canvas.width > 0) {
-    canvas.height = canvas.width * (600/400);
-  }
-}
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
+const hoop = {
+  x: 200,
+  y: 150,
+  width: 60,
+  height: 10
+};
 
-// Генерация случайных чисел
-function getRandomInt(min, max) {
-  return Math.floor(Math.random() * (max - min +1)) + min;
-}
+let score = 0;
+let isAiming = false;
+let aimStart = {x:0, y:0};
+let aimEnd = {x:0, y:0};
 
-// Инициализация уровня
-function initLevel() {
-  rings = [];
-  const count = getRandomInt(3,7);
-  for (let i=0; i<count; i++) {
-    rings.push({
-      x: getRandomInt(50, canvas.width - 50),
-      y: getRandomInt(50, canvas.height - 150),
-      radius: 30,
-      hit: false
-    });
-  }
-  levelScore = 0;
+function resetBall() {
+  ball.x = 200;
+  ball.y = 500;
+  ball.vx = 0;
+  ball.vy = 0;
+  ball.isMoving = false;
 }
 
-// Создание всплывающих элементов
-function createPopup(x,y) {
-  const types = ['circle','star','heart'];
-  const type = types[getRandomInt(0, types.length -1)];
-  popups.push({x,y,type,life:0});
+function drawHoop() {
+  ctx.fillStyle = 'red';
+  ctx.fillRect(hoop.x - hoop.width/2, hoop.y, hoop.width, hoop.height);
 }
 
-// Обработка кликов
-canvas.addEventListener('click', (e) => {
-  const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  rings.forEach(r => {
-    if (!r.hit) {
-      const dist = Math.hypot(r.x - x, r.y - y);
-      if (dist <= r.radius) {
-        r.hit = true;
-        levelScore++;
-        totalScore++;
-        createPopup(r.x, r.y);
-      }
+function drawBall() {
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2);
+  ctx.fillStyle = 'orange';
+  ctx.fill();
+}
+
+function update() {
+  if (ball.isMoving) {
+    ball.vy += 0.3; // гравитация
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+
+    // Проверка попадания в корзину
+    if (
+      ball.y - ball.radius < hoop.y + 10 && 
+      ball.y + ball.radius > hoop.y && 
+      ball.x > hoop.x - hoop.width/2 && 
+      ball.x < hoop.x + hoop.width/2 &&
+      ball.vy > 0 // чтобы проверить вход с нижней стороны
+    ) {
+      score++;
+      document.getElementById('score').innerText = 'Очков: ' + score;
+      resetBall();
     }
-  });
-});
 
-// Основной цикл
-function gameLoop() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  // рисуем кольца
-  rings.forEach(r => {
-    ctx.beginPath();
-    ctx.arc(r.x, r.y, r.radius, 0, Math.PI*2);
-    ctx.strokeStyle = r.hit ? 'gray' : 'blue';
-    ctx.lineWidth = 4;
-    ctx.stroke();
-  });
-
-  // рисуем всплывающие элементы
-  popups = popups.filter(p => p.life < 1.5);
-  popups.forEach(p => {
-    ctx.globalAlpha = 1 - p.life/1.5;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 10 + p.life*10, 0, Math.PI*2);
-    ctx.fillStyle = p.type==='circle'?'gold':p.type==='star'?'yellow':'pink';
-    ctx.fill();
-    ctx.globalAlpha=1;
-    p.life += 0.02;
-  });
-
-  if (timeLeft <= 0 || rings.every(r => r.hit)) {
-    endLevel();
-    return;
+    // Граница - падение
+    if (ball.y - ball.radius > canvas.height) {
+      resetBall();
+    }
   }
+}
 
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawHoop();
+  drawBall();
+
+  // Если есть прицеливание, рисуем линию
+  if (isAiming) {
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(aimStart.x, aimStart.y);
+    ctx.lineTo(aimEnd.x, aimEnd.y);
+    ctx.stroke();
+  }
+}
+
+function gameLoop() {
+  update();
+  draw();
   requestAnimationFrame(gameLoop);
 }
 
-// Завершение уровня
-function endLevel() {
-  clearInterval(gameTimeoutId);
-  clearInterval(countdownInterval);
-  document.getElementById('resultScreen').style.display='block';
-  finalResult.innerHTML = `Результат: ${levelScore} попаданий!<br>Продолжай в том же духе и ты сможешь стать топ один!`;
-}
+// Обработка мыши / касания
+canvas.addEventListener('mousedown', (e) => {
+  isAiming = true;
+  aimStart.x = e.offsetX;
+  aimStart.y = e.offsetY;
+});
+canvas.addEventListener('mouseup', (e) => {
+  if (isAiming) {
+    isAiming = false;
+    aimEnd.x = e.offsetX;
+    aimEnd.y = e.offsetY;
 
-// Запуск уровня
-function startLevel() {
-  document.getElementById('resultScreen').style.display='none';
-  timeLeft=30;
-  levelScore=0;
-  initLevel();
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  gameLoop();
-  countdownInterval = setInterval(() => {
-    timeLeft--;
-    timerElem.textContent = timeLeft;
-    if (timeLeft <= 0) {
-      endLevel();
-    }
-  }, 1000);
-}
-
-// Обработчик кнопки "играть снова"
-restartBtn.onclick=() => {
-  startLevel();
-}
-
-// Обработчик "поделиться"
-shareBtn.onclick= () => {
-  if (navigator.share) {
-    navigator.share({
-      title: 'Баскетбол NFT Мишки',
-      text: `Я набрал ${totalScore} очков! Попробуй тоже!`,
-      url: window.location.href
-    });
-  } else {
-    alert('Поделиться невозможно, используйте кнопку делиться в браузере.');
+    // Вычисляем силу и угол
+    const dx = aimStart.x - aimEnd.x;
+    const dy = aimStart.y - aimEnd.y;
+    ball.vx = dx * 0.2;
+    ball.vy = dy * 0.2;
+    ball.isMoving = true;
   }
-}
+});
+canvas.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 1) {
+    const touch = e.touches[0];
+    isAiming = true;
+    aimStart.x = touch.clientX - canvas.getBoundingClientRect().left;
+    aimStart.y = touch.clientY - canvas.getBoundingClientRect().top;
+  }
+});
+canvas.addEventListener('touchend', (e) => {
+  if (isAiming) {
+    isAiming = false;
+    const touch = e.changedTouches[0];
+    aimEnd.x = touch.clientX - canvas.getBoundingClientRect().left;
+    aimEnd.y = touch.clientY - canvas.getBoundingClientRect().top;
 
-// запуск игры
-window.onload=()=> {
-  startLevel();
+    const dx = aimStart.x - aimEnd.x;
+    const dy = aimStart.y - aimEnd.y;
+    ball.vx = dx * 0.2;
+    ball.vy = dy * 0.2;
+    ball.isMoving = true;
+  }
+});
+
+// Обработка кнопки "играть снова"
+document.getElementById('restartBtn').onclick=()=> {
+  score=0;
+  document.getElementById('score').innerText='Очков: '+score;
+  resetBall();
 };
+
+gameLoop();
 </script>
 
 </body>
